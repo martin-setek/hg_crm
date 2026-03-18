@@ -1,11 +1,14 @@
 #!/bin/bash
 set -e
 cd /app
-# Ensure SQLite file exists
+# Writable storage
+mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
+chmod -R 777 storage bootstrap/cache
+# SQLite
 touch database/database.sqlite
-# Run migrations + seed (idempotent)
+chmod 666 database/database.sqlite
+# Migrate + seed
 php artisan migrate --force --seed 2>&1 || true
-# Clear caches
 php artisan config:clear 2>&1 || true
-# Hand off to FrankenPHP
+# Start FrankenPHP
 exec /start-container.sh
