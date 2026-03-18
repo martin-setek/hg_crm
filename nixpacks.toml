@@ -1,2 +1,2 @@
-[start]
-cmd = "/app/start.sh"
+# Railway Railpack detects Laravel automatically
+# No overrides needed - let Railpack handle start
