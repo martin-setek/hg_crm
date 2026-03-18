@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Advisor;
-use App\Models\Lead;
 use App\Models\PipelineSnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -12,28 +11,25 @@ class AdvisorController extends Controller
 {
     public function index()
     {
-        $advisors = Advisor::withCount('leads')
-            ->withSum(['leads as total_ev' => fn($q) => $q->active()], 'ev_value')
-            ->orderBy('initials')
-            ->get()
-            ->map(function (Advisor $a) {
-                $a->warm_rate_pct = round($a->warmRate() * 100, 1);
-                $a->delta = PipelineSnapshot::deltaForAdvisor($a->id);
-                return $a;
-            });
+        $advisors = Advisor::orderBy('initials')->get()->map(function (Advisor $a) {
+            $leads = $a->leads()->get();
+            $a->leads_count = $leads->count();
+            $a->total_ev    = (float) $leads->whereNotIn('status', ['closed_lost'])->sum('ev_value');
+            $a->warm_rate_pct = round($a->warmRate() * 100, 1);
+            $a->delta = PipelineSnapshot::deltaForAdvisor($a->id);
+            return $a;
+        })->sortBy('initials')->values();
 
         return view('advisors.index', compact('advisors'));
     }
 
     public function show(Advisor $advisor)
     {
-        $advisor->load(['leads' => fn($q) => $q->latest()]);
+        $leads = $advisor->leads()->latest()->get();
+        $advisor->setRelation('leads', $leads);
 
-        $statusCounts = $advisor->leads
-            ->groupBy('status')
-            ->map->count();
+        $statusCounts = $leads->groupBy('status')->map->count();
 
-        // 30-day history snapshots
         $snapshots = PipelineSnapshot::where('advisor_id', $advisor->id)
             ->where('snapshot_date', '>=', Carbon::now()->subDays(30))
             ->orderBy('snapshot_date')
@@ -56,8 +52,7 @@ class AdvisorController extends Controller
 
         Advisor::create($data);
 
-        return redirect()->route('advisors.index')
-            ->with('success', 'Poradce byl přidán.');
+        return redirect()->route('advisors.index')->with('success', 'Poradce byl přidán.');
     }
 
     public function update(Request $request, Advisor $advisor)
@@ -72,7 +67,6 @@ class AdvisorController extends Controller
 
         $advisor->update($data);
 
-        return redirect()->route('advisors.show', $advisor)
-            ->with('success', 'Poradce byl aktualizován.');
+        return redirect()->route('advisors.show', $advisor)->with('success', 'Poradce byl aktualizován.');
     }
 }
