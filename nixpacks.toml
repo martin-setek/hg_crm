@@ -1,2 +1,2 @@
-# Railway Railpack detects Laravel automatically
-# No overrides needed - let Railpack handle start
+[phases.build]
+cmds = ["touch database/database.sqlite"]
