@@ -1,8 +1,15 @@
 services:
   - type: web
     name: hg-crm
-    runtime: php
-    buildCommand: bash .render-build.sh
+    env: php
+    plan: free
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader --no-interaction
+      touch database/database.sqlite
+      php artisan migrate --force --seed
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
     startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
     envVars:
       - key: APP_NAME
@@ -13,17 +20,15 @@ services:
         value: false
       - key: APP_KEY
         value: base64:bwH9H4AOtVCI4K6MKTn7cm2DyLJ79Jqj1XzBP2bLLV0=
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /opt/render/project/src/database/database.sqlite
       - key: SESSION_DRIVER
         value: cookie
       - key: CACHE_STORE
         value: array
-      - key: DB_CONNECTION
-        value: sqlite
-      - key: DB_DATABASE
-        value: /var/data/database.sqlite
       - key: LOG_CHANNEL
         value: stderr
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
+      - key: LOG_LEVEL
+        value: error

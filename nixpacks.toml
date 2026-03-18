@@ -1,2 +1,0 @@
-[phases.build]
-cmds = ["touch database/database.sqlite"]

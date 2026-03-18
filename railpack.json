@@ -1,5 +1,0 @@
-{
-  "deploy": {
-    "preDeployCommand": ["sh", "-c", "touch /app/database/database.sqlite && chmod 666 /app/database/database.sqlite && php artisan migrate --force --seed --no-interaction"]
-  }
-}
