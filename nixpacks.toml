@@ -1,17 +1,2 @@
-[phases.setup]
-nixPkgs = ["php83", "php83Extensions.pdo", "php83Extensions.pdo_sqlite", "php83Extensions.sqlite3", "php83Extensions.mbstring", "php83Extensions.tokenizer", "php83Extensions.xml", "php83Extensions.ctype", "php83Extensions.fileinfo", "php83Extensions.openssl", "composer"]
-
-[phases.build]
-cmds = [
-  "composer install --no-dev --optimize-autoloader --no-interaction",
-  "cp .env.railway .env",
-  "php artisan key:generate --force",
-  "touch database/database.sqlite",
-  "php artisan migrate --force --seed",
-  "php artisan config:cache",
-  "php artisan view:cache",
-  "php artisan route:cache"
-]
-
 [start]
-cmd = "php artisan serve --host=0.0.0.0 --port=$PORT"
+cmd = "/app/start.sh"
