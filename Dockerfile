@@ -1,29 +1,36 @@
-FROM php:8.3-cli
+FROM php:8.3-apache
 
-# Install extensions
+# Extensions
 RUN apt-get update && apt-get install -y \
-    unzip git curl \
+    libsqlite3-dev zip unzip git \
     && docker-php-ext-install pdo pdo_sqlite \
-    && apt-get clean
+    && rm -rf /var/lib/apt/lists/*
 
-# Install composer
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
+# Apache config
+RUN a2enmod rewrite
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+RUN echo '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>' >> /etc/apache2/sites-available/000-default.conf
+
+WORKDIR /var/www/html
+
+# Copy app
 COPY . .
 
-# Install dependencies
+# Composer install
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Permissions
-RUN mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache \
-    && chmod -R 777 storage bootstrap/cache \
+RUN mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache database \
     && touch database/database.sqlite \
-    && chmod 666 database/database.sqlite
+    && chmod -R 777 storage bootstrap/cache database \
+    && chown -R www-data:www-data /var/www/html
 
-# Run migrations + seed at container start
-RUN php artisan migrate --force --seed 2>/dev/null || true
+# Start script
+COPY docker-start.sh /docker-start.sh
+RUN chmod +x /docker-start.sh
 
-EXPOSE 8080
-
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+EXPOSE 80
+CMD ["/docker-start.sh"]
